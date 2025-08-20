@@ -212,9 +212,37 @@ df_whirlpak = pd.DataFrame(data_whirlpak)
 # 4. Fonctions
 # -------------------------
 def parse_dimension(dim_str):
-    if pd.isna(dim_str): return np.nan, np.nan
-    parts = dim_str.replace(' ', '').split('x')
-    return float(parts[0]), float(parts[1])
+    """Convert a dimension string like ``'3 x 5'`` into two floats.
+
+    The original implementation assumed the separator between width and
+    height was always a lowercase ``'x'`` and that the numeric portions
+    were valid floats.  In practice the data can contain uppercase ``'X'``
+    or the multiplication symbol ``'×'`` as well as stray spaces.  When
+    such values were encountered ``float(parts[0])`` raised a ``ValueError``
+    and halted the comparison process.
+
+    To make the function robust we normalise the string, handle the common
+    variants of the separator and guard against badly formatted inputs by
+    returning ``(np.nan, np.nan)`` when parsing fails.
+    """
+    if pd.isna(dim_str):
+        return np.nan, np.nan
+
+    cleaned = (
+        str(dim_str)
+        .lower()               # handle upper-case "X"
+        .replace('×', 'x')     # handle multiplication sign
+        .replace(' ', '')
+    )
+
+    parts = cleaned.split('x')
+    if len(parts) != 2:
+        return np.nan, np.nan
+
+    try:
+        return float(parts[0]), float(parts[1])
+    except ValueError:
+        return np.nan, np.nan
 
 def calculate_area(dim_str):
     if pd.isna(dim_str): return np.nan
